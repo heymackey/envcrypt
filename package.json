@@ -2,7 +2,9 @@
   "name": "envcrypt",
   "version": "0.0.1",
   "description": "Coming soon ...",
-  "main": "index.js",
+  "bin": {
+    "envcrypt": "./lib/cli.js"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -21,5 +23,8 @@
   "bugs": {
     "url": "https://github.com/danielmackey/envcrypt/issues"
   },
-  "homepage": "https://github.com/danielmackey/envcrypt#readme"
+  "homepage": "https://github.com/danielmackey/envcrypt#readme",
+  "dependencies": {
+    "minimist": "^1.2.0"
+  }
 }
