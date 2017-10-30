@@ -21,24 +21,46 @@ $ bin/rails runner "puts Rails::Secrets.read"
 The new cli interaction of `envcrypt` could be one that's more Rails-like.
 
 ```sh
-# opens up $EDITOR to edit JSON file in plaintext, encrypts each value on save
-$ ENVCRYPT_KEY=(key) envcrypt edit
+$ envcrypt setup
+# generates secrets.json and config.json files for you (and possibly a key?)
 
-# displays keys with decrypted values
+$ ENVCRYPT_KEY=(key) envcrypt edit
+# opens up $EDITOR to edit JSON file in plaintext, encrypts each value on save
+
 $ ENVCRYPT_KEY=(key) envcrypt read
+# displays keys with decrypted values
 ```
 
-This would allow for quick management of all of the values at once, but needing to work within the JSON format.
+When it's time to run the tests, or spin up the server, you'll likely need access to those encrypted values. You can use the envcrypt as a pre-command before your test or server scripts, like below.
+
+**package.json**
+```json
+{
+  "name": "my-awesome-envcrypted-application",
+  ...
+  "scripts": {
+    "start": "envcrypt node dist/server.js",
+    "test": "envcrypt --config test jest",
+    ...
+  },
+  ...
+}
+```
+
+**in your shell**
+```sh
+# run the tests
+ENVCRYPT_KEY=(key) npm test
+
+# in orderto pass arguments to envcrypt, add them after a --
+$ ENVCRYPT_KEY=(key) npm start -- -c production
+```
 
 ## storage
 
-### Option A - 2 files, one encrypted, one plain-text
+`envcrypt` splits the configuration between two files; a plain-text one for basic values (like URLs and ports), and an encrypted one for sensitive information (api keys, application ids/secrets, etc). This pattern follows _the Rails' way™_, much like `secrets.yml` / `secrets.yml.enc`. 
 
-This option would put `production` and `qa` in 1 file called `(config/)secrets.json`, which would have plain-text keys, and encrypted values; the other file would be `(config/)/config.json` and contains `development` and `test` with plain-text keys and values. The encrypted file would share the same encryption key between the various environments, making it easier to generate them in 1 step.
-
-This approach would mimic the Rails 5.1 encrypted secrets pattern, where remote server secrets are stored in `secrets.yml.enc` and local configuration is in `secrets.yml`
-
-These files would look like this internally. 
+When you run `envcrypt setup`, these two files (`config.json` and `secrets.json`) will be generated for you. You can edit and manage `config.json` using any editor, but for `secrets.json`, you'll need to use `encrypt edit` to change the values. Below is an example of the resulting output of the encryption in the `secrets.json` file. 
 
 ```json
 {
@@ -53,15 +75,4 @@ These files would look like this internally.
 }
 ```
 
-### Option B - a file per environment. 
-
-This option would have a seperate config json file per environment. In this model, the default would be to drop them into a `config/` folder. For example:
-
-- `config/production.json`
-- `config/qa.json`
-- `config/development.json`
-- `config/test.json`
-
-`development` and `test` environments would be marked as "insensitive" and contain their keys/values in plaintext, all other environments would be encrypted.
-
-This model would also allow for seperate encryption keys per environment, but also allow for using the same if you're lazy :). 
+The `envcrypt` runner will combine the values in `secrets.json` and `config.json` for the given environment, and stick the key/value pairs into `process.env` for your application to pull from.
